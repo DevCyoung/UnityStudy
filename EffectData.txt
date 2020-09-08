@@ -1,0 +1,184 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System;
+using System.Xml;
+using System.IO; //읽고 쓰기
+
+
+/// <summary>
+/// 이펙트 clip 리스트와 이펙트 파일들과 경를 가지고있으며 
+/// 파일을 읽고 쓰는 경로를 가지고있다.
+/// 모든 이펙트 데이터를 가지고있다.
+/// </summary>
+public class EffectData : BaseData 
+{
+    public EffectClip[] effectClips = new EffectClip[0];
+
+    public  string clipPath = "Effects/"; // 이펙트 프리펩이 있는 폴더
+    private string xmlFIlePath = string.Empty; // xmlfile의 저장 경로
+    private string xmlFileName = "effectData.xml"; // xmlfile 의 이름 
+
+    private string dataPath = "Data/effectData"; // 저장된 xmlfile 의 경로 
+    //XML 구분자
+    private const string EFFECT = "effect"; //저장키
+    private const string CLIP = "clip"; // 저장키
+
+    private EffectData() { }
+    //읽어오고 저장하고 데이터를 삭제하고 특정 클립을 얻어오고 복사하는 기능 
+
+    public void LoadData()
+    {
+        this.xmlFIlePath = Application.dataPath + dataDirectory; //  Application.dataPath <- asset 까지의 경로 입니다. dataDirectory <- data의 경로입니다.
+        TextAsset asset = (TextAsset)ResourceManager.Load(dataPath); // xml 로저장된것
+        if (asset == null || asset.text == null )
+        {
+            this.AddData("New Effect");
+            return;
+        }
+        // asset 이 null 이아니라면
+        using(XmlTextReader reader = new XmlTextReader(  new StringReader(asset.text)  )) //텍스트파일을 전부 읽어온다.
+        {
+            int currentID = 0;
+
+            while( reader.Read() ) // 다읽을 때까지
+            {
+                if (reader.IsStartElement()) 
+                {
+
+                    switch (reader.Name)
+                    {
+                        case "length":
+                            int length = int.Parse(reader.ReadString());
+                            this.names = new string[length];
+                            this.effectClips = new EffectClip[length];
+                            break;
+                        case "id":
+                            currentID = int.Parse(reader.ReadString());
+                            this.effectClips[currentID] = new EffectClip();
+                            this.effectClips[currentID].realId = currentID;
+                            break;
+                        case "name":
+                            this.names[currentID] = reader.ReadString();
+                            break;
+                        case "effectType":
+                            this.effectClips[currentID].effectType = (EffectType)Enum.Parse(typeof(EffectType), reader.ReadString());
+                            break;
+                        case "effectName":
+                            this.effectClips[currentID].effectName = reader.ReadString();
+                            break;
+                        case "effectPath":
+                            this.effectClips[currentID].effectPath = reader.ReadString();
+                            break;
+
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+    public void SaveData()
+    {
+        using (XmlTextWriter xml = new XmlTextWriter(xmlFIlePath + xmlFileName , System.Text.Encoding.UTF8) )
+        {
+            xml.WriteStartDocument(); // 도큐멘터리 시작
+            xml.WriteStartElement(EFFECT);
+            xml.WriteElementString("length", GetDataCount().ToString());
+
+            for (int i = 0; i < this.names.Length ; i++)
+            {
+                EffectClip clip = this.effectClips[i];
+                xml.WriteStartElement(CLIP);
+                xml.WriteElementString("id", i.ToString());
+                xml.WriteElementString("name", this.names[i]);
+                xml.WriteElementString("effecType", clip.effectType.ToString());
+                xml.WriteElementString("effecName", clip.effectName);
+                xml.WriteElementString("effectPath", clip.effectPath);
+                xml.WriteEndElement();
+            }
+            xml.WriteEndElement();
+            xml.WriteEndDocument();
+        }
+
+    }
+
+    public override int AddData(string newName)
+    {
+        if (this.names == null)
+        {
+            this.names = new string[] { name }; //초기화시 아무것도없으면 하나를넣어줍니다.
+            this.effectClips = new EffectClip[] { new EffectClip() };//초기화시 아무것도없으면 하나를넣어줍니다.
+        }
+        else
+        {
+            this.names = ArrayHelper.Add(name, this.names);
+            // this.names = ArrayHelper.Add(newname, this.names); 
+            this.effectClips = ArrayHelper.Add(new EffectClip(), this.effectClips);
+        }
+        return GetDataCount();
+    }
+
+    public override void RemoveData(int index)
+    {
+        this.names = ArrayHelper.Remove(index, names);
+        if( this.names.Length ==  0 )
+        {
+            this.names = null;
+        }
+        this.effectClips = ArrayHelper.Remove(index, this.effectClips); // 이펙트클립안에있는 특정데이터삭제
+      
+    }
+
+    public void ClearData() // 게임종료시 EffectData 모든메모리 해제 
+    {
+        foreach (EffectClip clip in effectClips)
+        {
+            clip.ReleaseEffect();
+        }
+        this.effectClips = null;
+        this.names = null;
+    }
+
+    public EffectClip GetCopy(int index)
+    {
+        if( index < 0 || index > effectClips.Length ) // 리플렉션??????????????????????????????????????????????
+        {
+            return null;
+        }
+        EffectClip original = this.effectClips[index];
+        EffectClip clip = new EffectClip();
+
+        clip.effectFullPath = original.effectFullPath;
+        clip.effectName = original.effectName ;
+        clip.effectPath = original.effectPath ;
+        //clip.effectPrefab = original.effectPrefab ; // 프리로딩 되서 안해도댐 왜????????????????????????????????????
+        clip.effectType = original.effectType ;
+        clip.realId = original.realId;
+        return clip;
+    }
+
+
+    /// <summary>
+    /// 원하는 인덱스를 프리로딩해서 찾아준다.
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public EffectClip GetClip(int index)
+    {
+        if( index < 0 || index < effectClips.Length )
+        {
+            return null;
+        }
+        effectClips[index].PreLoad();
+        return effectClips[index];
+    }
+
+    public override void Copy(int index)
+    {
+        this.names = ArrayHelper.Add(this.names[index], this.names);
+        this.effectClips = ArrayHelper.Add(GetCopy(index) , this.effectClips ); // 카피된 데이터를 effecclips 에 넣습니다. effectclips 는 모든 이펙트 클립 을 다루는거같습니다. (카피된 생성된 등등)
+    }
+
