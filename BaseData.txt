@@ -1,0 +1,73 @@
+using System.Collections;
+using UnityEngine;
+
+/// <summary>
+/// 데이터 디렉토리, 데이터의 이름들을 담는배열 , 데이터갯수 추가 카피 
+/// </summary>
+public class BaseData : ScriptableObject
+{
+    public const string dataDirectory = "/9.ResourcesData/Resources/Data/";
+    public string[] names = null; // new string[0] 이 아닌이유 -> null로 표현하면 로딩이끝났는지 아닌지 알수있다. // 아이텝1 , 아이템2 , 아이템3 ......아이템100등등
+    public BaseData() { }
+
+
+
+    public int GetDataCount()
+    {
+        int retValue = 0;
+        if( this.names != null )
+        {
+            return names.Length;
+        }
+        return retValue;
+    }
+    
+
+
+    /// <summary>
+    /// 툴에 출력하기위해 이 클래스가 가지고있는 데이터 이름들을 내입맛에 맞게 목록을 만들어주는 함수. -> 그냥 names를 가져오면 가져오는곳에서 가공할순 없으니!
+    /// </summary>
+    /// <returns></returns>
+    public string[] GetNameList(bool showID , string filterWord = "" ) // fiㅣterWord 는 걸러낼 데이터 찾기 
+    {
+        string[] retList = new string[0];
+
+        if( this.name == null)
+        {
+            return retList;
+        }
+
+        retList = new string[this.names.Length];
+        for (int i = 0; i < this.names.Length ; i++)
+        {
+            if( filterWord != "")
+            {
+                if( this.names[i].Contains( filterWord.ToLower()) == false ) // ""가 아니고 이름에 포함되어 있지 않다면
+                {
+                    continue;
+                }
+
+            }
+            // 포함되어 있다면?
+            if(showID)
+            {
+                retList[i] = i.ToString() + " : " + this.names[i]; 
+            }
+            else
+            {
+                retList[i] = this.names[i];
+            }
+        }
+        return retList;
+    }
+    public virtual int AddData(string newName)
+    {
+        return GetDataCount(); // add시 현재데이터개수 출력
+    }
+    public virtual void RemoveData(int index)
+    {
+    }
+    public virtual void Copy(int index)
+    {
+    }
+}
