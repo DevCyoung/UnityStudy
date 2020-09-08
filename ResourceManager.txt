@@ -1,0 +1,41 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+using UnityObject = UnityEngine.Object;
+
+
+/// <summary>
+/// Resources.Load 를 래핑 하는 클래스 입니다.
+/// 나중엔 어셋번들로 변경됩니다.
+/// 
+/// </summary>
+public class ResourceManager 
+{
+    // 프로젝트에서 단하나만 존재하는 클래스 SingleTon 
+    // 남발시 프로젝트 재활용시 singleton 때문에 고생하게된다.
+    // Singleton 이나쁘다는것은 아니다.
+    // 함수가 단순하다면 static 으로 사용해보자.
+
+    public static UnityObject Load(string path) // path는 경로입니다.
+    {
+        // 지금은 리소스 로드지만 추후엔 어셋번들 로드로 변경됨
+        return Resources.Load(path); // Effect prefab , sound 등 project 에있는 걸불러옵니다. 이는 UnityEngine.Object 입니다.
+    }
+
+    public static GameObject LoadAndInstantaidate(string path) // 읽은후 생성합니다.
+    {
+        UnityObject source = Load(path);
+        if ( source == null)
+        {
+            return null;
+        }
+
+        return GameObject.Instantiate(source) as GameObject;
+
+
+    }
+
+
+
+}
