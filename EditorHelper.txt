@@ -1,0 +1,152 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor;
+using System;
+using System.IO;
+using System.Text;
+using UnityEditor.EditorTools;
+using UnityObject = UnityEngine.Object;
+public class EditorHelper
+{
+
+	/// <summary>
+	/// 경로 계산 함수.
+	/// </summary>
+	/// <param name="p_clip"></param>
+	/// <returns></returns>
+	public static string GetPath(UnityEngine.Object p_clip)
+	{
+		string retString = string.Empty;
+		retString = AssetDatabase.GetAssetPath(p_clip);
+		string[] path_node = retString.Split('/'); //Assets/9.ResourcesData/Resources/Sound/BGM.wav
+		bool findResource = false;
+		for (int i = 0; i < path_node.Length - 1; i++)
+		{
+			if (findResource == false)
+			{
+				if (path_node[i] == "Resources")
+				{
+					findResource = true;
+					retString = string.Empty;
+				}
+			}
+			else
+			{
+				retString += path_node[i] + "/";
+			}
+
+		}
+
+		return retString;
+	}
+
+	/// <summary>
+	/// Data 리스트를 enum structure로 뽑아주는 함수.
+	/// </summary>
+	public static void CreateEnumStructure(string enumName, StringBuilder data)
+	{
+		string templateFilePath = "Assets/Editor/EnumTemplate.txt";
+
+		string entittyTemplate = File.ReadAllText(templateFilePath);
+
+		entittyTemplate = entittyTemplate.Replace("$DATA$", data.ToString());
+		entittyTemplate = entittyTemplate.Replace("$ENUM$", enumName);
+		string folderPath = "Assets/1.Scripts/GameData/";
+		if (Directory.Exists(folderPath) == false)
+		{
+			Directory.CreateDirectory(folderPath);
+		}
+
+		string FilePath = folderPath + enumName + ".cs";
+		if (File.Exists(FilePath))
+		{
+			File.Delete(FilePath);
+		}
+		File.WriteAllText(FilePath, entittyTemplate);
+	}
+
+	public static void EditorToolTopLayer(BaseData baseData , ref int selection , ref UnityObject source , int uiWidth)
+    {
+		//GUI 코딩시 Begin 과 end는 쌍으로와야함 
+
+		EditorGUILayout.BeginHorizontal();
+        {
+			if( GUILayout.Button("ADD" , GUILayout.Width(uiWidth) ) )
+            {
+				baseData.AddData("New Data"); //EffectData , SoundData 에서 사용 AddData를 사용시 오버라이딩한 함수가 동작 
+				selection = baseData.GetDataCount() - 1; // 최종 데이터를 선택 
+				source = null;
+            }
+			if(GUILayout.Button("COPY" , GUILayout.Width(uiWidth) ) )
+            {
+				baseData.Copy(selection);
+				source = null;
+				selection = baseData.GetDataCount() - 1;
+            }
+			if(baseData.GetDataCount() > 1 )
+            {
+				if( GUILayout.Button("REMOVE" , GUILayout.Width(uiWidth)) )
+                {
+					source = null;
+					baseData.RemoveData(selection);
+                }
+            }
+
+			if( selection > baseData.GetDataCount() - 1)
+            {
+				selection = baseData.GetDataCount() - 1;
+            }
+        }
+		EditorGUILayout.EndHorizontal();
+    }
+
+	public static void EditorToolListLayer(ref Vector2 ScrollPosition , BaseData basedata , ref int selection , ref UnityObject source , int uiWidth )
+    {
+		EditorGUILayout.BeginVertical( GUILayout.Width(uiWidth));
+        {
+			EditorGUILayout.Separator();// 한칸띄기
+
+			EditorGUILayout.BeginVertical("box"); // 박스스타일로 채운다.
+            {
+				
+				
+				ScrollPosition = EditorGUILayout.BeginScrollView(ScrollPosition);
+                {
+					if( basedata.GetDataCount() > 0 ) // 데이터가 있다면
+                    {
+						int lastselection = selection;
+						selection = GUILayout.SelectionGrid(selection, basedata.GetNameList(true), 1); // 1줄짜리 그리드를 만들겠다. 포문없이 촤라락 그려줌 
+						if(lastselection != selection )
+                        {
+							source = null;
+                        }
+
+
+
+
+                    }
+
+
+                }
+				EditorGUILayout.EndScrollView();
+
+
+
+            }
+			EditorGUILayout.EndVertical();
+
+
+
+					
+
+        }
+		EditorGUILayout.EndVertical();
+
+
+    }
+		
+    
+
+
+}
